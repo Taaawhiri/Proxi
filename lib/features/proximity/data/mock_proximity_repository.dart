@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:latlong2/latlong.dart';
 
 import '../../auth/domain/app_user.dart';
+import '../../auth/domain/user_intent.dart';
 import '../domain/nearby_user.dart';
 
 /// Fake nearby-users feed, centered on a fixed demo location. Replace with a
@@ -42,6 +43,7 @@ class MockProximityRepository {
           name: name,
           email: '${name.toLowerCase()}@example.com',
           bio: 'Amante della città e delle nuove connessioni.',
+          intent: UserIntent.values[index % UserIntent.values.length],
         ),
         position: position,
         distanceMeters: distanceMeters,

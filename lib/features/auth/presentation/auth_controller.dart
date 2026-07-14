@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/mock_auth_repository.dart';
 import '../domain/auth_state.dart';
+import '../domain/user_intent.dart';
 
 final authRepositoryProvider = Provider((ref) => MockAuthRepository());
 
@@ -56,6 +57,13 @@ class AuthController extends StateNotifier<AuthState> {
     if (current is! Authenticated) return;
     await _repository.updateAvatar(current.user, avatarPath);
     state = Authenticated(current.user.copyWith(avatarPath: avatarPath));
+  }
+
+  Future<void> updateIntent(UserIntent? intent) async {
+    final current = state;
+    if (current is! Authenticated) return;
+    await _repository.updateIntent(current.user, intent);
+    state = Authenticated(current.user.copyWith(intent: intent, clearIntent: intent == null));
   }
 
   Future<void> logout() async {

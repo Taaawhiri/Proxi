@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/app_user.dart';
+import '../domain/user_intent.dart';
 
 /// Fake authentication backend: accepts any well-formed credentials and
 /// persists the session locally. Replace with a real API client once the
@@ -11,6 +12,7 @@ class MockAuthRepository {
   static const _keyUserEmail = 'auth.userEmail';
   static const _keyUserBio = 'auth.userBio';
   static const _keyUserAvatarPath = 'auth.userAvatarPath';
+  static const _keyUserIntent = 'auth.userIntent';
 
   Future<AppUser?> restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -24,6 +26,7 @@ class MockAuthRepository {
       email: email,
       bio: prefs.getString(_keyUserBio) ?? '',
       avatarPath: prefs.getString(_keyUserAvatarPath),
+      intent: _intentFromName(prefs.getString(_keyUserIntent)),
     );
   }
 
@@ -60,6 +63,11 @@ class MockAuthRepository {
     await _persist(updated);
   }
 
+  Future<void> updateIntent(AppUser user, UserIntent? intent) async {
+    final updated = user.copyWith(intent: intent, clearIntent: intent == null);
+    await _persist(updated);
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyUserId);
@@ -67,6 +75,7 @@ class MockAuthRepository {
     await prefs.remove(_keyUserEmail);
     await prefs.remove(_keyUserBio);
     await prefs.remove(_keyUserAvatarPath);
+    await prefs.remove(_keyUserIntent);
   }
 
   Future<void> _persist(AppUser user) async {
@@ -79,6 +88,20 @@ class MockAuthRepository {
     if (avatarPath != null) {
       await prefs.setString(_keyUserAvatarPath, avatarPath);
     }
+    final intent = user.intent;
+    if (intent != null) {
+      await prefs.setString(_keyUserIntent, intent.name);
+    } else {
+      await prefs.remove(_keyUserIntent);
+    }
+  }
+
+  UserIntent? _intentFromName(String? name) {
+    if (name == null) return null;
+    for (final value in UserIntent.values) {
+      if (value.name == name) return value;
+    }
+    return null;
   }
 
   String _capitalize(String value) =>

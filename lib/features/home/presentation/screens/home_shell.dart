@@ -2,8 +2,8 @@ import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 
 import '../../../chat/presentation/screens/conversations_screen.dart';
-import '../../../map/presentation/screens/proximity_map_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../proximity/presentation/screens/nearby_screen.dart';
 
 /// Bottom-navigation shell shown once the user is authenticated.
 class HomeShell extends StatefulWidget {
@@ -17,7 +17,7 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
   static const _screens = [
-    ProximityMapScreen(),
+    NearbyScreen(),
     ConversationsScreen(),
     ProfileScreen(),
   ];
