@@ -40,14 +40,24 @@ class ProfileScreen extends ConsumerWidget {
           Center(child: Text(user.name, style: Theme.of(context).textTheme.headlineSmall)),
           Center(child: Text(user.email, style: Theme.of(context).textTheme.bodyMedium)),
           const SizedBox(height: 24),
-          Text('Bio', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(user.bio.isEmpty ? 'Aggiungi una breve descrizione di te.' : user.bio),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => _editBio(context, ref, user.bio),
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('Modifica bio'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Bio', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Text(user.bio.isEmpty ? 'Aggiungi una breve descrizione di te.' : user.bio),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => _editBio(context, ref, user.bio),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Modifica bio'),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
