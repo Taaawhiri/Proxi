@@ -30,7 +30,7 @@ class AppTheme {
       scaffoldBackgroundColor: scaffoldBackground,
     );
     final colorScheme = base.colorScheme;
-    final textTheme = GoogleFonts.robotoFlexTextTheme(base.textTheme);
+    final textTheme = GoogleFonts.outfitTextTheme(base.textTheme);
 
     return base.copyWith(
       textTheme: textTheme,
