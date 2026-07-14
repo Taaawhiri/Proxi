@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/router/page_transitions.dart';
 import '../../../../core/widgets/proxi_avatar.dart';
 import '../../../auth/domain/auth_state.dart';
+import '../../../auth/domain/user_intent.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../proximity/presentation/proximity_providers.dart';
 import '../../../proximity/presentation/screens/nearby_user_profile_screen.dart';
@@ -62,6 +63,39 @@ class ProfileScreen extends ConsumerWidget {
           Center(child: Text(user.name, style: Theme.of(context).textTheme.headlineSmall)),
           Center(child: Text(user.email, style: Theme.of(context).textTheme.bodyMedium)),
           const SizedBox(height: 24),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Stato', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Fai sapere agli altri cosa cerchi su Proxi.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final intent in UserIntent.values)
+                        ChoiceChip(
+                          label: Text(intent.label),
+                          avatar: Icon(intent.icon, size: 18),
+                          selected: user.intent == intent,
+                          onSelected: (selected) => ref
+                              .read(authControllerProvider.notifier)
+                              .updateIntent(selected ? intent : null),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -142,7 +176,7 @@ class _FavoritesSection extends ConsumerWidget {
               data: (users) {
                 final favorites = users.where((user) => favoriteIds.contains(user.profile.id)).toList();
                 if (favorites.isEmpty) {
-                  return const Text('Nessun preferito ancora. Aggiungine uno dalla mappa!');
+                  return const Text('Nessun preferito ancora. Aggiungine uno dalla lista delle vicinanze!');
                 }
                 return Column(
                   children: [

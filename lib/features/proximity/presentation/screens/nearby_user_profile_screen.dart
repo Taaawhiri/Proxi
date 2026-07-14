@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/widgets/intent_chip.dart';
 import '../../../chat/presentation/chat_controller.dart';
 import '../../../chat/presentation/screens/chat_detail_screen.dart';
 import '../../domain/nearby_user.dart';
@@ -50,6 +51,10 @@ class NearbyUserProfileScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
+          if (user.profile.intent != null) ...[
+            const SizedBox(height: 12),
+            Center(child: IntentChip(intent: user.profile.intent!)),
+          ],
           const SizedBox(height: 24),
           if (user.profile.bio.isNotEmpty)
             Card(

@@ -1,84 +1,21 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/router/page_transitions.dart';
+import '../../../../core/widgets/intent_chip.dart';
+import '../../../../core/widgets/staggered_fade_in.dart';
 import '../../../chat/presentation/chat_controller.dart';
 import '../../../chat/presentation/screens/chat_detail_screen.dart';
 import '../../../proximity/data/mock_proximity_repository.dart';
 import '../../../proximity/domain/nearby_user.dart';
-import '../../../proximity/presentation/proximity_providers.dart';
 import '../../../proximity/presentation/screens/nearby_user_profile_screen.dart';
 import '../../../proximity/presentation/user_relations_controller.dart';
 
-class ProximityMapScreen extends ConsumerWidget {
-  const ProximityMapScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nearbyUsersAsync = ref.watch(nearbyUsersProvider);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Nelle vicinanze')),
-      body: nearbyUsersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Errore: $error')),
-        data: (users) => _MapView(users: users),
-      ),
-      floatingActionButton: _RefreshFab(
-        isLoading: nearbyUsersAsync.isLoading,
-        onPressed: () => ref.invalidate(rawNearbyUsersProvider),
-      ),
-    );
-  }
-}
-
-class _RefreshFab extends StatefulWidget {
-  const _RefreshFab({required this.isLoading, required this.onPressed});
-
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  @override
-  State<_RefreshFab> createState() => _RefreshFabState();
-}
-
-class _RefreshFabState extends State<_RefreshFab> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 800),
-  );
-
-  @override
-  void didUpdateWidget(covariant _RefreshFab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isLoading) {
-      _controller.repeat();
-    } else {
-      _controller.stop();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: widget.isLoading ? null : widget.onPressed,
-      tooltip: 'Aggiorna',
-      child: RotationTransition(turns: _controller, child: const Icon(Icons.refresh)),
-    );
-  }
-}
-
-class _MapView extends StatelessWidget {
-  const _MapView({required this.users});
+/// Map view of nearby users (secondary to the default list view). No own
+/// Scaffold/AppBar — meant to be embedded as a body by [NearbyScreen].
+class NearbyMapView extends StatelessWidget {
+  const NearbyMapView({super.key, required this.users});
 
   final List<NearbyUser> users;
 
@@ -107,55 +44,14 @@ class _MapView extends StatelessWidget {
                 point: user.position,
                 width: 44,
                 height: 44,
-                child: _PopIn(delay: Duration(milliseconds: index * 60), child: _NearbyUserMarker(user: user)),
+                child: StaggeredFadeIn(
+                  delay: Duration(milliseconds: index * 60),
+                  child: _NearbyUserMarker(user: user),
+                ),
               ),
           ],
         ),
       ],
-    );
-  }
-}
-
-/// Staggered scale + fade entrance used for map markers, evoking a radar
-/// "ping" reveal as nearby users are discovered.
-class _PopIn extends StatefulWidget {
-  const _PopIn({required this.child, this.delay = Duration.zero});
-
-  final Widget child;
-  final Duration delay;
-
-  @override
-  State<_PopIn> createState() => _PopInState();
-}
-
-class _PopInState extends State<_PopIn> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 350),
-  );
-  Timer? _delayTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _delayTimer = Timer(widget.delay, () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _delayTimer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    return ScaleTransition(
-      scale: curved,
-      child: FadeTransition(opacity: _controller, child: widget.child),
     );
   }
 }
@@ -183,7 +79,7 @@ class _NearbyUserMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showUserSheet(context, user),
+      onTap: () => showNearbyUserSheet(context, user),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -203,7 +99,9 @@ class _NearbyUserMarker extends StatelessWidget {
   }
 }
 
-void _showUserSheet(BuildContext context, NearbyUser user) {
+/// Quick-actions sheet shown when tapping a nearby user, from either the
+/// map or the list view.
+void showNearbyUserSheet(BuildContext context, NearbyUser user) {
   showModalBottomSheet(
     context: context,
     builder: (context) => _NearbyUserSheet(user: user),
@@ -218,6 +116,7 @@ class _NearbyUserSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isFavorite = ref.watch(userRelationsControllerProvider).favoriteIds.contains(user.profile.id);
+    final intent = user.profile.intent;
 
     return SafeArea(
       child: Padding(
@@ -249,6 +148,10 @@ class _NearbyUserSheet extends ConsumerWidget {
                 ],
               ),
             ),
+            if (intent != null) ...[
+              const SizedBox(height: 12),
+              IntentChip(intent: intent),
+            ],
             if (user.profile.bio.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(user.profile.bio),
