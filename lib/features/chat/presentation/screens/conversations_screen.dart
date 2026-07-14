@@ -17,21 +17,14 @@ class ConversationsScreen extends ConsumerWidget {
     final conversations = ref.read(chatControllerProvider.notifier).conversationsSorted;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          const SliverAppBar.medium(title: Text('Chat')),
-          if (conversations.isEmpty)
-            const SliverFillRemaining(
-              child: Center(child: Text('Nessuna conversazione ancora.')),
-            )
-          else
-            SliverList.separated(
+      appBar: AppBar(title: const Text('Chat')),
+      body: conversations.isEmpty
+          ? const Center(child: Text('Nessuna conversazione ancora.'))
+          : ListView.separated(
               itemCount: conversations.length,
               separatorBuilder: (context, index) => const Divider(height: 1, indent: 76),
               itemBuilder: (context, index) => _ConversationTile(conversation: conversations[index]),
             ),
-        ],
-      ),
     );
   }
 }

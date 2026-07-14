@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/router/page_transitions.dart';
+import '../../../../core/widgets/proxi_avatar.dart';
 import '../../../auth/domain/auth_state.dart';
 import '../../../auth/presentation/auth_controller.dart';
+import '../../../proximity/presentation/proximity_providers.dart';
+import '../../../proximity/presentation/screens/nearby_user_profile_screen.dart';
+import '../../../proximity/presentation/user_relations_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -31,9 +37,25 @@ class ProfileScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(24),
         children: [
           Center(
-            child: CircleAvatar(
-              radius: 48,
-              child: Text(user.initials, style: const TextStyle(fontSize: 28)),
+            child: Stack(
+              children: [
+                ProxiAvatar(initials: user.initials, avatarPath: user.avatarPath, radius: 48),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+                    ),
+                    child: IconButton(
+                      onPressed: () => _pickAvatar(context, ref),
+                      icon: Icon(Icons.camera_alt, color: Theme.of(context).colorScheme.onPrimary, size: 18),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -59,9 +81,18 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          const _FavoritesSection(),
         ],
       ),
     );
+  }
+
+  Future<void> _pickAvatar(BuildContext context, WidgetRef ref) async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 800);
+    if (picked != null) {
+      await ref.read(authControllerProvider.notifier).updateAvatar(picked.path);
+    }
   }
 
   Future<void> _editBio(BuildContext context, WidgetRef ref, String currentBio) async {
@@ -83,5 +114,54 @@ class ProfileScreen extends ConsumerWidget {
     if (newBio != null) {
       await ref.read(authControllerProvider.notifier).updateBio(newBio.trim());
     }
+  }
+}
+
+class _FavoritesSection extends ConsumerWidget {
+  const _FavoritesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final favoriteIds = ref.watch(userRelationsControllerProvider).favoriteIds;
+    final nearbyUsersAsync = ref.watch(nearbyUsersProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('I tuoi preferiti', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            nearbyUsersAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Text('Errore: $error'),
+              data: (users) {
+                final favorites = users.where((user) => favoriteIds.contains(user.profile.id)).toList();
+                if (favorites.isEmpty) {
+                  return const Text('Nessun preferito ancora. Aggiungine uno dalla mappa!');
+                }
+                return Column(
+                  children: [
+                    for (final user in favorites)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(child: Text(user.profile.initials)),
+                        title: Text(user.profile.name),
+                        subtitle: Text('A ${user.formattedDistance} da te'),
+                        trailing: const Icon(Icons.star, color: Colors.amber),
+                        onTap: () => Navigator.of(context).push(fadeSlideRoute(NearbyUserProfileScreen(user: user))),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

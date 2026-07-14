@@ -51,6 +51,13 @@ class AuthController extends StateNotifier<AuthState> {
     state = Authenticated(current.user.copyWith(bio: bio));
   }
 
+  Future<void> updateAvatar(String avatarPath) async {
+    final current = state;
+    if (current is! Authenticated) return;
+    await _repository.updateAvatar(current.user, avatarPath);
+    state = Authenticated(current.user.copyWith(avatarPath: avatarPath));
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     state = const Unauthenticated();
