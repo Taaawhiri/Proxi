@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,11 +23,52 @@ class ProximityMapScreen extends ConsumerWidget {
         error: (error, _) => Center(child: Text('Errore: $error')),
         data: (users) => _MapView(users: users),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _RefreshFab(
+        isLoading: nearbyUsersAsync.isLoading,
         onPressed: () => ref.invalidate(nearbyUsersProvider),
-        tooltip: 'Aggiorna',
-        child: const Icon(Icons.refresh),
       ),
+    );
+  }
+}
+
+class _RefreshFab extends StatefulWidget {
+  const _RefreshFab({required this.isLoading, required this.onPressed});
+
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  @override
+  State<_RefreshFab> createState() => _RefreshFabState();
+}
+
+class _RefreshFabState extends State<_RefreshFab> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  );
+
+  @override
+  void didUpdateWidget(covariant _RefreshFab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isLoading) {
+      _controller.repeat();
+    } else {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: widget.isLoading ? null : widget.onPressed,
+      tooltip: 'Aggiorna',
+      child: RotationTransition(turns: _controller, child: const Icon(Icons.refresh)),
     );
   }
 }
@@ -55,16 +98,60 @@ class _MapView extends StatelessWidget {
               height: 24,
               child: const _MeMarker(),
             ),
-            for (final user in users)
+            for (final (index, user) in users.indexed)
               Marker(
                 point: user.position,
                 width: 44,
                 height: 44,
-                child: _NearbyUserMarker(user: user),
+                child: _PopIn(delay: Duration(milliseconds: index * 60), child: _NearbyUserMarker(user: user)),
               ),
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Staggered scale + fade entrance used for map markers, evoking a radar
+/// "ping" reveal as nearby users are discovered.
+class _PopIn extends StatefulWidget {
+  const _PopIn({required this.child, this.delay = Duration.zero});
+
+  final Widget child;
+  final Duration delay;
+
+  @override
+  State<_PopIn> createState() => _PopInState();
+}
+
+class _PopInState extends State<_PopIn> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 350),
+  );
+  Timer? _delayTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _delayTimer = Timer(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _delayTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+    return ScaleTransition(
+      scale: curved,
+      child: FadeTransition(opacity: _controller, child: widget.child),
     );
   }
 }
@@ -157,8 +244,21 @@ class _NearbyUserSheet extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => ChatDetailScreen(peer: user.profile),
+                  PageRouteBuilder<void>(
+                    transitionDuration: const Duration(milliseconds: 300),
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        ChatDetailScreen(peer: user.profile),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+                      return FadeTransition(
+                        opacity: curved,
+                        child: SlideTransition(
+                          position: Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+                              .animate(curved),
+                          child: child,
+                        ),
+                      );
+                    },
                   ),
                 );
               },
