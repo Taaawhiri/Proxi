@@ -1,19 +1,12 @@
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/map/presentation/screens/proximity_map_screen.dart';
+import '../widgets/auth_gate.dart';
 
-/// Central navigation graph for Proxi.
+/// Central navigation graph for Proxi. Screens below the auth gate manage
+/// their own internal navigation (bottom nav + pushed routes).
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: '/map',
-      builder: (context, state) => const ProximityMapScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const AuthGate()),
   ],
 );

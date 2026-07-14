@@ -1,0 +1,39 @@
+import 'package:flutter/material.dart';
+
+import '../../../chat/presentation/screens/conversations_screen.dart';
+import '../../../map/presentation/screens/proximity_map_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
+
+/// Bottom-navigation shell shown once the user is authenticated.
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
+
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  int _index = 0;
+
+  static const _screens = [
+    ProximityMapScreen(),
+    ConversationsScreen(),
+    ProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(index: _index, children: _screens),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (index) => setState(() => _index = index),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.explore_outlined), label: 'Vicinanze'),
+          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
+          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profilo'),
+        ],
+      ),
+    );
+  }
+}
